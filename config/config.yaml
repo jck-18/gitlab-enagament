@@ -1,0 +1,43 @@
+company:
+  name: "GitLab"
+  subreddits:
+    - "gitlab"
+    - "devops"
+    - "git"
+    - "programming"
+    - "kubernetes"
+    - "selfhosted"
+    - "cicd"
+  keywords:
+    - "GitLab"
+    - "CI/CD"
+    - "DevOps"
+    - "merge request"
+    - "pipeline"
+    - "runner"
+    - "repository"
+    - "self-managed"
+    - "omnibus"
+    - "gitaly"
+    - "SAML"
+    - "kubernetes"
+    - "helm"
+    - "docker"
+    - "postgresql"
+    - "redis"
+    - "nginx"
+    - "sidekiq"
+  response_tone: "professional, technical, helpful"
+  docs_sitemap: "https://docs.gitlab.com/sitemap.xml"         # Path to the XML sitemap for docs.gitlab.com
+  crawl4api_key: "crawl4ai_1234567890"  # API key if needed for crawl4api simulation
+  docs_url: "https://docs.gitlab.com"
+  
+reddit:
+  client_id: "qtYFFTMpwiVsLebMyZJR7g"
+  client_secret: "uAJgMhu95Y5PRlFwRx_z6T_FoRU9AA"
+  user_agent: "GitLabEngagementBot/0.1"
+  
+topic_modeling:
+  num_topics: 5
+  passes: 10
+  random_state: 42
