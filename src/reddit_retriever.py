@@ -51,7 +51,7 @@ def retrieve_reddit_posts():
     
     # Add time filter parameters
     current_time = datetime.utcnow()
-    day_ago = current_time - timedelta(days=5)
+    day_ago = current_time - timedelta(days=int(reddit_cfg.get('days_back')))
 
     for subreddit in subreddits:
         sub = reddit.subreddit(subreddit)

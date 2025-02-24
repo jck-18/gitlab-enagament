@@ -1,0 +1,5 @@
+(0, '0.023*"gitlab" + 0.010*"repository" + 0.008*"like" + 0.008*"linguist" + 0.007*"https"')
+(1, '0.011*"docker" + 0.011*"https" + 0.009*"github" + 0.009*"pipeline" + 0.008*"kubernetes"')
+(2, '0.049*"gitlab" + 0.015*"https" + 0.008*"pipeline" + 0.007*"devops" + 0.006*"hackathon"')
+(3, '0.014*"mysql" + 0.013*"flask" + 0.011*"name" + 0.011*"gitlab" + 0.009*"https"')
+(4, '0.009*"branch" + 0.008*"main" + 0.007*"push" + 0.005*"pushing" + 0.005*"developers"')
