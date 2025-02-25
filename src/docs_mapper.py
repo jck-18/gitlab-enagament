@@ -13,6 +13,9 @@ import asyncio
 import logging
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, CacheMode
 from crawl4ai.extraction_strategy import LLMExtractionStrategy
+from crawl4ai.dispatcher import MemoryAdaptiveDispatcher, SemaphoreDispatcher
+from crawl4ai.monitor import CrawlerMonitor, DisplayMode
+from crawl4ai.rate_limiter import RateLimiter
 from concurrent.futures import ThreadPoolExecutor
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -158,6 +161,7 @@ async def analyze_content_relevance(topic_id, keywords, urls, together_api_key):
         cache_mode=CacheMode.BYPASS,
         page_timeout=30000,
         word_count_threshold=50,  # Ensure we get meaningful content
+        semaphore_count=10,  # Increased concurrency for faster processing
         content_filter={
             "prune_elements": ["nav", "header", "footer", "aside", ".sidebar", ".navigation", ".menu"],
             "query_relevance": {
@@ -167,44 +171,53 @@ async def analyze_content_relevance(topic_id, keywords, urls, together_api_key):
         }
     )
     
+    # Create a dispatcher for efficient parallel processing
+    dispatcher = MemoryAdaptiveDispatcher(
+        memory_threshold_percent=80.0,  # Allow using up to 80% of available memory
+        check_interval=1.0,
+        max_session_permit=15,  # Allow up to 15 concurrent sessions
+        monitor=CrawlerMonitor(
+            max_visible_rows=10,
+            display_mode=DisplayMode.AGGREGATED  # Use aggregated display for cleaner output
+        ),
+        rate_limiter=RateLimiter(
+            base_delay=(0.5, 1.0),  # Random delay between 0.5-1.0 seconds
+            max_delay=5.0  # Cap delay at 5 seconds
+        )
+    )
+    
     relevant_urls = []
     
-    # Process URLs in batches to avoid overwhelming the server
-    batch_size = 5
-    for i in range(0, len(urls), batch_size):
-        batch_urls = urls[i:i+batch_size]
-        logger.info(f"Processing batch {i//batch_size + 1}/{(len(urls) + batch_size - 1)//batch_size} for Topic {topic_id}")
+    # Process all URLs in parallel with the dispatcher
+    async with AsyncWebCrawler(api_key=together_api_key) as crawler:
+        results = await crawler.arun_many(
+            urls=urls,
+            config=config,
+            dispatcher=dispatcher
+        )
         
-        async with AsyncWebCrawler(api_key=together_api_key) as crawler:
-            # Process batch in parallel
-            tasks = [crawler.arun(url=url, config=config) for url in batch_urls]
-            results = await asyncio.gather(*tasks, return_exceptions=True)
+        for result in results:
+            if not result.success:
+                logger.error(f"Error crawling {result.url}: {result.error_message}")
+                continue
             
-            for url, result in zip(batch_urls, results):
-                if isinstance(result, Exception):
-                    logger.error(f"Error crawling {url}: {result}")
-                    continue
-                
-                # Check if we got meaningful content
-                if result.markdown and len(result.markdown.strip()) > 200:
-                    # Calculate relevance score using TF-IDF and cosine similarity
-                    vectorizer = TfidfVectorizer(stop_words='english')
-                    try:
-                        tfidf_matrix = vectorizer.fit_transform([topic_query, result.markdown])
-                        similarity = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
-                        
-                        logger.info(f"URL: {url} - Similarity score: {similarity:.4f}")
-                        
-                        if similarity > 0.15:  # Higher threshold for final selection
-                            relevant_urls.append((url, similarity))
-                            logger.info(f"Added {url} to relevant URLs for Topic {topic_id} (score: {similarity:.4f})")
-                    except Exception as e:
-                        logger.error(f"Error calculating similarity for {url}: {e}")
-                else:
-                    logger.warning(f"Insufficient content from {url} (length: {len(result.markdown.strip()) if result.markdown else 0})")
-        
-        # Add a small delay between batches
-        await asyncio.sleep(2)
+            # Check if we got meaningful content
+            if result.markdown and len(result.markdown.strip()) > 200:
+                # Calculate relevance score using TF-IDF and cosine similarity
+                vectorizer = TfidfVectorizer(stop_words='english')
+                try:
+                    tfidf_matrix = vectorizer.fit_transform([topic_query, result.markdown])
+                    similarity = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
+                    
+                    logger.info(f"URL: {result.url} - Similarity score: {similarity:.4f}")
+                    
+                    if similarity > 0.15:  # Higher threshold for final selection
+                        relevant_urls.append((result.url, similarity))
+                        logger.info(f"Added {result.url} to relevant URLs for Topic {topic_id} (score: {similarity:.4f})")
+                except Exception as e:
+                    logger.error(f"Error calculating similarity for {result.url}: {e}")
+            else:
+                logger.warning(f"Insufficient content from {result.url} (length: {len(result.markdown.strip()) if result.markdown else 0})")
     
     # Sort by relevance and take top results
     relevant_urls.sort(key=lambda x: x[1], reverse=True)
@@ -455,18 +468,94 @@ async def build_knowledge_base(mapping, together_api_key, topic_representations)
         docs_content = [f"# {topic_header}\n\n"]
         successful_extractions = 0
         
-        # Process all URLs for this topic
-        for i, url in enumerate(urls):
-            logger.info(f"  Processing URL {i+1}/{len(urls)}: {url}")
-            content = await crawl_page_with_llm(url, together_api_key, topic_words)
+        # Create a common LLM extraction strategy
+        llm_strategy = LLMExtractionStrategy(
+            provider="together",
+            model="meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",
+            api_token=together_api_key,
+            extraction_type="block",
+            instruction="""
+            Extract the main technical documentation content from this page.
+            Ignore navigation elements, headers, footers, and other boilerplate.
+            Focus on extracting substantive information that would be useful for a knowledge base.
+            Format the output as clean markdown with proper headings and structure.
+            """,
+            input_format="fit_markdown",
+            chunk_token_threshold=4000,
+            apply_chunking=True,
+            extra_args={
+                "temperature": 0.1,
+                "max_tokens": 4096,
+                "top_p": 0.7,
+                "top_k": 50,
+                "repetition_penalty": 1,
+                "stop": ["<|eot_id|>", "<|eom_id|>"]
+            }
+        )
+        
+        # Configure the crawler with optimized concurrency
+        config = CrawlerRunConfig(
+            cache_mode=CacheMode.BYPASS,
+            page_timeout=30000,
+            word_count_threshold=50,
+            semaphore_count=8,  # Process up to 8 URLs concurrently
+            extraction_strategy=llm_strategy,
+            content_filter={
+                "prune_elements": ["nav", "header", "footer", "aside", ".sidebar", ".navigation", ".menu"]
+            }
+        )
+        
+        # Create a dispatcher for efficient parallel processing
+        dispatcher = SemaphoreDispatcher(
+            semaphore_count=8,  # Match the semaphore_count in config
+            rate_limiter=RateLimiter(
+                base_delay=(0.5, 1.0),
+                max_delay=5.0
+            ),
+            monitor=CrawlerMonitor(
+                max_visible_rows=10,
+                display_mode=DisplayMode.DETAILED
+            )
+        )
+        
+        # Process all URLs for this topic in parallel
+        async with AsyncWebCrawler(api_key=together_api_key) as crawler:
+            results = await crawler.arun_many(
+                urls=urls,
+                config=config,
+                dispatcher=dispatcher
+            )
             
-            # Check if extraction was successful (not just an error message)
-            is_good_quality, reason = verify_content_quality(content)
-            if is_good_quality:
-                successful_extractions += 1
-            
-            docs_content.append(content)
-            docs_content.append("\n\n---\n\n")  # Add separator between documents
+            for result in results:
+                if not result.success:
+                    logger.error(f"Error crawling {result.url}: {result.error_message}")
+                    content = f"## Error crawling {result.url}\n\n{result.error_message}\n\n[Link]({result.url})"
+                else:
+                    if result.extracted_content:
+                        # The LLM has already extracted and formatted the content
+                        content = result.extracted_content
+                        logger.info(f"LLM extraction successful for {result.url} - Content length: {len(content)}")
+                    elif result.markdown:
+                        # Use markdown if LLM extraction failed
+                        content = f"## {result.metadata.get('title', 'No title found')}\n\n{result.markdown}"
+                        logger.warning(f"Falling back to markdown for {result.url} - Content length: {len(content)}")
+                    else:
+                        # Fallback to basic text
+                        content = f"## Error extracting content from {result.url}\n\nCould not extract meaningful content."
+                        logger.error(f"Failed to extract content from {result.url}")
+                    
+                    # Add link to original document
+                    content += f"\n\n[Read full documentation]({result.url})"
+                
+                # Check if extraction was successful (not just an error message)
+                is_good_quality, reason = verify_content_quality(content)
+                if is_good_quality:
+                    successful_extractions += 1
+                else:
+                    logger.warning(f"Low quality content from {result.url}: {reason}")
+                
+                docs_content.append(content)
+                docs_content.append("\n\n---\n\n")  # Add separator between documents
         
         # Log extraction success rate
         success_rate = (successful_extractions / len(urls)) * 100 if urls else 0
