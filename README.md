@@ -1,24 +1,24 @@
-# GitLab Documentation Knowledge Base Generator
+# GitLab Handbook Knowledge Base Generator
 
-This project creates a semantically organized knowledge base from GitLab documentation using advanced topic modeling and LLM-based content extraction. It automatically identifies relevant topics in the documentation, matches them with appropriate URLs, and extracts high-quality content while filtering out boilerplate and navigation elements.
+This project creates a semantically organized knowledge base from the GitLab handbook using advanced topic modeling and LLM-based content extraction. It automatically identifies relevant topics in the handbook, matches them with appropriate URLs, and extracts high-quality content while filtering out boilerplate and navigation elements.
 
 ## Overview
 
-The GitLab Documentation Knowledge Base Generator uses a combination of:
+The GitLab Handbook Knowledge Base Generator uses a combination of:
 - **Reddit integration** for community feedback and question monitoring
 - **BERTopic** for advanced topic modeling
 - **Semantic matching** to ensure relevance between topics and content
 - **Together.ai's Llama 3.3 70B** for intelligent content extraction
-- **Multi-stage filtering** to produce clean, useful documentation
+- **Multi-stage filtering** to produce clean, useful handbook content
 
 ## Problem Solved
 
-This project addresses several challenges in creating useful knowledge bases from large documentation sites:
+This project addresses several challenges in creating useful knowledge bases from large company handbooks:
 
 1. **Content Quality**: Most web crawlers capture excessive boilerplate, navigation elements, and irrelevant content
-2. **Topic Organization**: Documentation is often organized by product structure rather than conceptual topics
+2. **Topic Organization**: Handbooks are often organized by company structure rather than conceptual topics
 3. **Relevance Matching**: Simple keyword matching often fails to capture semantic relationships
-4. **Extraction Efficiency**: Processing large documentation sites can be resource-intensive
+4. **Extraction Efficiency**: Processing large handbooks can be resource-intensive
 
 Our solution uses a combination of advanced NLP techniques and LLM-based extraction to create a high-quality, topic-organized knowledge base suitable for RAG (Retrieval-Augmented Generation) applications.
 
@@ -87,7 +87,7 @@ This script monitors specified subreddits for relevant posts about GitLab, savin
 python src/advanced_topic_modeling.py
 ```
 
-This script analyzes GitLab documentation to identify key topics and their relationships.
+This script analyzes the GitLab handbook to identify key topics and their relationships.
 
 3. **Knowledge Base Generation**
 
@@ -95,7 +95,7 @@ This script analyzes GitLab documentation to identify key topics and their relat
 python src/docs_mapper.py
 ```
 
-This script maps topics to relevant documentation URLs and extracts high-quality content to create a comprehensive knowledge base.
+This script maps topics to relevant handbook URLs and extracts high-quality content to create a comprehensive knowledge base.
 
 ## Methodology
 
@@ -116,7 +116,7 @@ The implementation includes:
 
 ### 2. Topic Modeling with BERTopic
 
-Based on community questions and documentation needs, the project uses BERTopic, an advanced topic modeling technique that leverages BERT embeddings and clustering to identify coherent topics within the documentation corpus. This approach provides more semantically meaningful topics compared to traditional methods like LDA.
+Based on community questions and handbook needs, the project uses BERTopic, an advanced topic modeling technique that leverages BERT embeddings and clustering to identify coherent topics within the handbook corpus. This approach provides more semantically meaningful topics compared to traditional methods like LDA.
 
 Key steps:
 - Document preprocessing and tokenization
@@ -133,7 +133,7 @@ The implementation includes:
 
 ### 3. URL Matching and Content Relevance
 
-A two-stage approach is used to match topics with relevant documentation:
+A two-stage approach is used to match topics with relevant handbook content:
 
 1. **Initial URL-based filtering**:
    - Match topic keywords against URLs to create an initial candidate set
@@ -157,7 +157,7 @@ The project uses Together.ai's Llama 3.3 70B Instruct Turbo Free model to extrac
 
 - **Content filtering**: Removes navigation elements, headers, footers, and other boilerplate
 - **Chunking**: Handles large documents by breaking them into manageable pieces
-- **Instruction-guided extraction**: Uses specific instructions to focus on substantive technical content
+- **Instruction-guided extraction**: Uses specific instructions to focus on substantive handbook content
 - **Markdown formatting**: Ensures clean, structured output suitable for knowledge bases
 
 The implementation includes:
@@ -170,8 +170,8 @@ The implementation includes:
 
 The final knowledge base is organized by topic, with each section containing:
 - Topic header with representative keywords
-- Extracted content from multiple relevant documentation pages
-- Links to original documentation for reference
+- Extracted content from multiple relevant handbook pages
+- Links to original handbook pages for reference
 
 The implementation includes:
 - Markdown formatting for easy readability
@@ -216,7 +216,7 @@ The `reddit_retriever.py` script implements:
 
 The `advanced_topic_modeling.py` script implements:
 
-- Custom document preprocessing for GitLab documentation
+- Custom document preprocessing for GitLab handbook
 - BERTopic model configuration with optimized parameters
 - Topic visualization and analysis
 - Timestamp-based versioning for reproducibility
@@ -236,20 +236,20 @@ The `docs_mapper.py` script implements:
 
 The knowledge base is saved as a Markdown file with the naming pattern `knowledge_base_YYYYMMDD_HHMMSS.md`, containing:
 - Topics organized by sections
-- Clean, formatted documentation content
+- Clean, formatted handbook content
 - Links to original sources
 
 ## Future Improvements
 
 Potential enhancements for future versions:
 
-1. **Incremental updates**: Only process new or changed documentation
-2. **Multi-source integration**: Combine documentation from multiple sources
+1. **Incremental updates**: Only process new or changed handbook pages
+2. **Multi-source integration**: Combine content from handbook and technical documentation
 3. **Custom embedding models**: Train domain-specific embeddings for improved topic modeling
 4. **Interactive visualization**: Web interface for exploring the knowledge base
 5. **Evaluation metrics**: Automated quality assessment of the generated knowledge base
 6. **Automated Reddit responses**: Use the knowledge base to automatically draft responses to Reddit questions
-7. **Sentiment analysis**: Track community sentiment about GitLab features and documentation
+7. **Sentiment analysis**: Track community sentiment about GitLab features and handbook content
 
 ## License
 
@@ -260,4 +260,4 @@ Potential enhancements for future versions:
 - [BERTopic](https://github.com/MaartenGr/BERTopic) for topic modeling
 - [Together.ai](https://www.together.ai/) for providing the Llama 3.3 70B model
 - [Crawl4AI](https://docs.crawl4ai.com/) for web crawling and content extraction
-- [GitLab](https://docs.gitlab.com/) for their comprehensive documentation 
+- [GitLab](https://handbook.gitlab.com/) for their comprehensive handbook 
