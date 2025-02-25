@@ -1,0 +1,101 @@
+# GitLab Documentation RAG Assistant
+
+This project implements a Retrieval-Augmented Generation (RAG) system for GitLab documentation. It processes markdown files from the knowledgebase directory, creates embeddings, and retrieves relevant information to answer user queries.
+
+## Features
+
+- Processes markdown files from the knowledgebase directory and its subdirectories
+- Creates embeddings using Sentence Transformers
+- Retrieves relevant documents based on cosine similarity
+- Integrates with Reddit to process GitLab-related questions
+- Generates responses based on retrieved documents
+- Formats prompts for LLM integration
+
+## Project Structure
+
+```
+.
+├── knowledgebase/         # GitLab documentation in markdown format
+├── src/                   # Source code
+│   ├── rag_model.py       # RAG model implementation
+│   ├── gitlab_rag_assistant.py  # Main script to run the RAG assistant
+│   ├── reddit_retriever.py      # Script to retrieve Reddit posts
+│   └── ...
+├── results/               # Generated prompts and responses
+├── requirements.txt       # Python dependencies
+└── README.md              # This file
+```
+
+## Installation
+
+1. Clone the repository
+2. Install the required dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+## Usage
+
+### Process a specific query
+
+```bash
+python src/gitlab_rag_assistant.py --query "How do I set up GitLab CI/CD pipelines with Docker?"
+```
+
+### Process Reddit posts
+
+First, fetch new Reddit posts:
+
+```bash
+python src/gitlab_rag_assistant.py --fetch-reddit
+```
+
+Then, process the posts:
+
+```bash
+python src/gitlab_rag_assistant.py
+```
+
+### Additional options
+
+- `--knowledgebase`: Path to the knowledgebase directory (default: "knowledgebase")
+- `--top-k`: Number of top documents to retrieve (default: 3)
+- `--model`: Sentence transformer model to use (default: "all-MiniLM-L6-v2")
+
+## RAG Implementation Details
+
+The RAG implementation consists of the following components:
+
+1. **Document Processing**: Markdown files are loaded from the knowledgebase directory and chunked into smaller pieces.
+
+2. **Embedding Creation**: The chunks are embedded using a Sentence Transformer model.
+
+3. **Retrieval**: When a query is received, it is embedded and compared to the document embeddings using cosine similarity. The most relevant documents are retrieved.
+
+4. **Response Generation**: A response is generated based on the retrieved documents. In a production environment, this would be done using an LLM.
+
+5. **Prompt Formatting**: The retrieved documents and query are formatted into a prompt for an LLM.
+
+## Sample Prompt Construction
+
+```
+You are a helpful GitLab documentation assistant. 
+Use the below references to answer the question accurately:
+
+Reference 1: {chunk_text_1}
+Reference 2: {chunk_text_2}
+...
+
+User Query: "{User's question: e.g. How do I set up GitLab CI/CD pipelines with Docker?}"
+
+Instruction: Combine all references to create the best possible answer. If unsure, say so.
+```
+
+## Future Improvements
+
+- Implement more sophisticated chunking strategies
+- Add support for more document formats
+- Integrate with a production-ready LLM for response generation
+- Implement a web interface for easier interaction
+- Add support for document filtering based on metadata
