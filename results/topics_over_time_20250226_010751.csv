@@ -1,0 +1,9 @@
+,Topic,Words,Frequency,Timestamp,Name
+0,-1,"gitlab, false, drop, build, https",17,1740512211,-1_gitlab_false_drop_build
+1,0,"gitlab, 2025, utc, 20, 13",41,1740512211,0_gitlab_2025_utc_20
+2,1,"kubernetes, https, app, com, helm",38,1740512211,1_kubernetes_https_app_com
+3,2,"devops, experience, job, learning, learn",24,1740512211,2_devops_experience_job_learning
+4,3,"ci cd, cd, ci, pipeline, people",20,1740512211,3_ci cd_cd_ci_pipeline
+5,4,"docker, just, use, terraform, services",19,1740512211,4_docker_just_use_terraform
+6,5,"pipeline, gitlab, ci, job, shared",18,1740512211,5_pipeline_gitlab_ci_job
+7,6,"commit, repository, git, folder, new",9,1740512211,6_commit_repository_git_folder
