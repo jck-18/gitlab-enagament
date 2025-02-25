@@ -24,6 +24,7 @@ asyncio>=3.4.3
 
 # LLM integration
 together>=0.1.5
+google-generativeai>=0.3.0  # Google Gemini API
 
 # RAG pipeline dependencies
 chromadb>=0.4.6  # Vector database (local option)
@@ -35,6 +36,7 @@ argparse>=1.4.0  # Command-line argument parsing
 
 # Utilities
 tqdm>=4.62.3
+python-dotenv>=1.0.0  # For managing environment variables
 
 # Reddit API
 praw>=7.0.0
