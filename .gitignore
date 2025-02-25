@@ -2,6 +2,8 @@ __pycache__/
 *.pyc
 *.db
 .env
+.cursorignore
+settings.txt
 
 # Virtual environment
 venv/
@@ -11,6 +13,7 @@ venv/
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
 
 # Distribution / packaging
 .Python
@@ -134,3 +137,14 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Files to keep locally but not in remote repo
+# Replace these with your actual filenames
+file1_to_remove_from_remote.py
+file2_to_remove_from_remote.py
