@@ -28,9 +28,9 @@ company:
     - "nginx"
     - "sidekiq"
   response_tone: "professional, technical, helpful"
-  docs_sitemap: "https://docs.gitlab.com/sitemap.xml"         # Path to the XML sitemap for docs.gitlab.com
+  docs_sitemap: "https://handbook.gitlab.com/sitemap.xml"         # Path to the XML sitemap for docs.gitlab.com
   together_api_key: "tgp_v1_z1ZvF7xdQG2W1XJWKTfYaB8_io0rTG3T2d-jJuJUoP4"  # API key for Together.ai
-  docs_url: "https://docs.gitlab.com"
+  docs_url: "https://handbook.gitlab.com/handbook/"
   
 reddit:
   client_id: "qtYFFTMpwiVsLebMyZJR7g"
