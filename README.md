@@ -5,11 +5,11 @@ This project creates a semantically organized knowledge base from GitLab documen
 ## Overview
 
 The GitLab Documentation Knowledge Base Generator uses a combination of:
-- **BERTopic** for advanced topic modeling
-- **Together.ai's Llama 3.3 70B** for intelligent content extraction
-- **Semantic matching** to ensure relevance between topics and content
-- **Multi-stage filtering** to produce clean, useful documentation
 - **Reddit integration** for community feedback and question monitoring
+- **BERTopic** for advanced topic modeling
+- **Semantic matching** to ensure relevance between topics and content
+- **Together.ai's Llama 3.3 70B** for intelligent content extraction
+- **Multi-stage filtering** to produce clean, useful documentation
 
 ## Problem Solved
 
@@ -73,23 +73,7 @@ You can get a free API key by signing up at [Together.ai](https://www.together.a
 
 The project consists of three main scripts:
 
-1. **Topic Modeling**
-
-```bash
-python src/advanced_topic_modeling.py
-```
-
-This script analyzes GitLab documentation to identify key topics and their relationships.
-
-2. **Knowledge Base Generation**
-
-```bash
-python src/docs_mapper.py
-```
-
-This script maps topics to relevant documentation URLs and extracts high-quality content to create a comprehensive knowledge base.
-
-3. **Reddit Monitoring**
+1. **Reddit Monitoring**
 
 ```bash
 python src/reddit_retriever.py
@@ -97,11 +81,42 @@ python src/reddit_retriever.py
 
 This script monitors specified subreddits for relevant posts about GitLab, saving them to a local database for analysis and response drafting.
 
+2. **Topic Modeling**
+
+```bash
+python src/advanced_topic_modeling.py
+```
+
+This script analyzes GitLab documentation to identify key topics and their relationships.
+
+3. **Knowledge Base Generation**
+
+```bash
+python src/docs_mapper.py
+```
+
+This script maps topics to relevant documentation URLs and extracts high-quality content to create a comprehensive knowledge base.
+
 ## Methodology
 
-### 1. Topic Modeling with BERTopic
+### 1. Reddit Community Monitoring
 
-The project uses BERTopic, an advanced topic modeling technique that leverages BERT embeddings and clustering to identify coherent topics within the documentation corpus. This approach provides more semantically meaningful topics compared to traditional methods like LDA.
+The project begins by monitoring Reddit for relevant discussions about GitLab:
+
+- **Subreddit Monitoring**: Tracks specified subreddits for new posts
+- **Keyword Filtering**: Identifies posts containing relevant keywords
+- **Time-Based Filtering**: Focuses on recent posts (configurable timeframe)
+- **Local Database Storage**: Saves relevant posts for analysis and response
+
+The implementation includes:
+- PRAW (Python Reddit API Wrapper) integration
+- SQLite database for post storage
+- Configurable subreddit and keyword lists
+- Time-based filtering to focus on recent discussions
+
+### 2. Topic Modeling with BERTopic
+
+Based on community questions and documentation needs, the project uses BERTopic, an advanced topic modeling technique that leverages BERT embeddings and clustering to identify coherent topics within the documentation corpus. This approach provides more semantically meaningful topics compared to traditional methods like LDA.
 
 Key steps:
 - Document preprocessing and tokenization
@@ -116,7 +131,7 @@ The implementation includes:
 - Adjustable clustering parameters
 - Topic visualization capabilities
 
-### 2. URL Matching and Content Relevance
+### 3. URL Matching and Content Relevance
 
 A two-stage approach is used to match topics with relevant documentation:
 
@@ -136,7 +151,7 @@ The implementation includes:
 - Error handling for failed requests
 - Batch processing to manage server load
 
-### 3. Intelligent Content Extraction
+### 4. Intelligent Content Extraction
 
 The project uses Together.ai's Llama 3.3 70B Instruct Turbo Free model to extract high-quality content:
 
@@ -151,7 +166,7 @@ The implementation includes:
 - Efficient token usage to minimize API costs
 - Fallback mechanisms for handling extraction failures
 
-### 4. Knowledge Base Generation
+### 5. Knowledge Base Generation
 
 The final knowledge base is organized by topic, with each section containing:
 - Topic header with representative keywords
@@ -163,21 +178,6 @@ The implementation includes:
 - Timestamp-based file naming for versioning
 - Topic organization by relevance
 - Source attribution for all content
-
-### 5. Reddit Community Monitoring
-
-The project includes functionality to monitor Reddit for relevant discussions about GitLab:
-
-- **Subreddit Monitoring**: Tracks specified subreddits for new posts
-- **Keyword Filtering**: Identifies posts containing relevant keywords
-- **Time-Based Filtering**: Focuses on recent posts (configurable timeframe)
-- **Local Database Storage**: Saves relevant posts for analysis and response
-
-The implementation includes:
-- PRAW (Python Reddit API Wrapper) integration
-- SQLite database for post storage
-- Configurable subreddit and keyword lists
-- Time-based filtering to focus on recent discussions
 
 ## Project Structure
 
@@ -201,6 +201,17 @@ gitlab-mvp/
 
 ## Implementation Details
 
+### Reddit Retriever
+
+The `reddit_retriever.py` script implements:
+
+- Reddit API integration using PRAW
+- Configurable subreddit monitoring
+- Keyword-based post filtering
+- Time-based filtering to focus on recent posts
+- SQLite database storage for retrieved posts
+- Preparation for response drafting
+
 ### Advanced Topic Modeling
 
 The `advanced_topic_modeling.py` script implements:
@@ -220,17 +231,6 @@ The `docs_mapper.py` script implements:
 - Content relevance analysis using TF-IDF and cosine similarity
 - LLM-based content extraction using Together.ai's Llama 3.3 70B
 - Knowledge base generation in markdown format
-
-### Reddit Retriever
-
-The `reddit_retriever.py` script implements:
-
-- Reddit API integration using PRAW
-- Configurable subreddit monitoring
-- Keyword-based post filtering
-- Time-based filtering to focus on recent posts
-- SQLite database storage for retrieved posts
-- Preparation for response drafting
 
 ## Output
 
