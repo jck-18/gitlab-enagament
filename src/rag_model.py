@@ -9,18 +9,36 @@ from sklearn.metrics.pairwise import cosine_similarity
 import sqlite3
 from typing import List, Dict, Tuple, Optional
 
+# Import the GeminiLLM class if available
+try:
+    from llm_integration import GeminiLLM
+    HAS_GEMINI = True
+except ImportError:
+    HAS_GEMINI = False
+
 class GitLabRAG:
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
+    def __init__(self, model_name: str = "all-MiniLM-L6-v2", use_llm: bool = False, llm_model_name: str = "gemini-2.0-flash"):
         """
         Initialize the GitLab RAG model.
         
         Args:
             model_name: The name of the sentence transformer model to use
+            use_llm: Whether to use the LLM for response generation
+            llm_model_name: The name of the Gemini model to use (if use_llm is True)
         """
         self.model = SentenceTransformer(model_name)
         self.documents = []
         self.embeddings = None
         self.metadata = []
+        
+        # Initialize LLM if requested and available
+        self.llm = None
+        if use_llm and HAS_GEMINI:
+            try:
+                self.llm = GeminiLLM(model_name=llm_model_name)
+                print(f"Initialized Gemini LLM for response generation with model: {llm_model_name}")
+            except Exception as e:
+                print(f"Failed to initialize Gemini LLM: {e}")
         
     def load_markdown_files(self, directory: str) -> None:
         """
@@ -160,7 +178,6 @@ class GitLabRAG:
     def generate_response(self, query: str, retrieved_docs: List[Dict]) -> str:
         """
         Generate a response based on retrieved documents.
-        This is a placeholder - in a real implementation, you would use an LLM here.
         
         Args:
             query: The user query
@@ -169,9 +186,15 @@ class GitLabRAG:
         Returns:
             Generated response
         """
-        # In a real implementation, you would use an LLM here
-        # For now, we'll just format the retrieved documents
+        # Use LLM if available
+        if self.llm is not None:
+            try:
+                return self.llm.rag_generate(query, retrieved_docs)
+            except Exception as e:
+                print(f"Error generating response with LLM: {e}")
+                print("Falling back to template response")
         
+        # Fallback to template response
         response = f"Query: {query}\n\n"
         response += "Based on the GitLab documentation, here's what I found:\n\n"
         
@@ -206,7 +229,7 @@ class GitLabRAG:
 
 if __name__ == "__main__":
     # Example usage
-    rag = GitLabRAG()
+    rag = GitLabRAG(use_llm=True)
     rag.load_markdown_files("knowledgebase")
     rag.create_embeddings()
     

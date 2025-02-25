@@ -10,6 +10,8 @@ This project implements a Retrieval-Augmented Generation (RAG) system for GitLab
 - Integrates with Reddit to process GitLab-related questions
 - Generates responses based on retrieved documents
 - Formats prompts for LLM integration
+- **NEW**: Integration with Google Gemini API for response generation
+- **NEW**: Support for different Gemini models (gemini-2.0-flash, etc.)
 
 ## Project Structure
 
@@ -20,6 +22,7 @@ This project implements a Retrieval-Augmented Generation (RAG) system for GitLab
 │   ├── rag_model.py       # RAG model implementation
 │   ├── gitlab_rag_assistant.py  # Main script to run the RAG assistant
 │   ├── reddit_retriever.py      # Script to retrieve Reddit posts
+│   ├── llm_integration.py       # LLM integration with Google Gemini
 │   └── ...
 ├── results/               # Generated prompts and responses
 ├── requirements.txt       # Python dependencies
@@ -35,12 +38,30 @@ This project implements a Retrieval-Augmented Generation (RAG) system for GitLab
 pip install -r requirements.txt
 ```
 
+3. Set up the Google Gemini API key (optional, for LLM integration):
+
+```bash
+python src/gitlab_rag_assistant.py --setup-llm
+```
+
 ## Usage
 
 ### Process a specific query
 
 ```bash
 python src/gitlab_rag_assistant.py --query "How do I set up GitLab CI/CD pipelines with Docker?"
+```
+
+### Process a query with LLM response generation
+
+```bash
+python src/gitlab_rag_assistant.py --query "How do I set up GitLab CI/CD pipelines with Docker?" --use-llm
+```
+
+### Process a query with a specific Gemini model
+
+```bash
+python src/gitlab_rag_assistant.py --query "How do I set up GitLab CI/CD pipelines with Docker?" --use-llm --llm-model "gemini-2.0-flash"
 ```
 
 ### Process Reddit posts
@@ -62,6 +83,9 @@ python src/gitlab_rag_assistant.py
 - `--knowledgebase`: Path to the knowledgebase directory (default: "knowledgebase")
 - `--top-k`: Number of top documents to retrieve (default: 3)
 - `--model`: Sentence transformer model to use (default: "all-MiniLM-L6-v2")
+- `--use-llm`: Use LLM for response generation
+- `--llm-model`: Gemini model to use (default: "gemini-2.0-flash")
+- `--setup-llm`: Set up the LLM API key
 
 ## RAG Implementation Details
 
@@ -73,9 +97,25 @@ The RAG implementation consists of the following components:
 
 3. **Retrieval**: When a query is received, it is embedded and compared to the document embeddings using cosine similarity. The most relevant documents are retrieved.
 
-4. **Response Generation**: A response is generated based on the retrieved documents. In a production environment, this would be done using an LLM.
+4. **Response Generation**: A response is generated based on the retrieved documents. This can be done using a template or using the Google Gemini API.
 
 5. **Prompt Formatting**: The retrieved documents and query are formatted into a prompt for an LLM.
+
+## LLM Integration
+
+The project integrates with the Google Gemini API for response generation. To use this feature:
+
+1. Set up a Google API key at https://ai.google.dev/
+2. Run `python src/gitlab_rag_assistant.py --setup-llm` to configure the API key
+3. Use the `--use-llm` flag when running the assistant
+4. Optionally, specify a Gemini model with `--llm-model` (default is "gemini-2.0-flash")
+
+### Available Gemini Models
+
+- `gemini-2.0-flash`: Balanced model for most use cases (default)
+- `gemini-2.0-pro`: More powerful model for complex reasoning
+- `gemini-1.5-flash`: Older version with good performance
+- `gemini-1.5-pro`: Older version with more capabilities
 
 ## Sample Prompt Construction
 
@@ -96,6 +136,6 @@ Instruction: Combine all references to create the best possible answer. If unsur
 
 - Implement more sophisticated chunking strategies
 - Add support for more document formats
-- Integrate with a production-ready LLM for response generation
+- Integrate with additional LLM providers
 - Implement a web interface for easier interaction
 - Add support for document filtering based on metadata
