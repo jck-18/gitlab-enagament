@@ -162,3 +162,6 @@ knowledge_base_*.md
 # config/config.yaml
 
 .cursor/rules
+venv_old/
+./venv_old/
+/venv_old/
