@@ -7,7 +7,8 @@ settings.txt
 
 # Virtual environment
 venv/
-.venv/
+env/
+ENV/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -148,3 +149,14 @@ cython_debug/
 # Replace these with your actual filenames
 file1_to_remove_from_remote.py
 file2_to_remove_from_remote.py
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Project specific
+knowledge_base_*.md
+
+# Potentially sensitive information
+# Uncomment if you want to exclude config files with API keys
+# config/config.yaml

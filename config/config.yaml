@@ -29,7 +29,7 @@ company:
     - "sidekiq"
   response_tone: "professional, technical, helpful"
   docs_sitemap: "https://docs.gitlab.com/sitemap.xml"         # Path to the XML sitemap for docs.gitlab.com
-  crawl4api_key: "crawl4ai_1234567890"  # API key if needed for crawl4api simulation
+  together_api_key: "tgp_v1_z1ZvF7xdQG2W1XJWKTfYaB8_io0rTG3T2d-jJuJUoP4"  # API key for Together.ai
   docs_url: "https://docs.gitlab.com"
   
 reddit:
