@@ -3,6 +3,7 @@ import requests
 import numpy as np
 from typing import List, Dict, Optional, Union, Any
 from dotenv import load_dotenv
+import yaml
 
 # Load environment variables from .env file
 load_dotenv()
@@ -26,10 +27,8 @@ class TogetherEmbeddings:
         if not self.api_key:
             # Try to load from config file
             try:
-                with open('config/config.yaml', 'r') as f:
-                    import yaml
-                    config = yaml.safe_load(f)
-                    self.api_key = config.get('together_api_key')
+                config = self.load_config()
+                self.api_key = config.get('together_api_key')
             except:
                 pass
                 
@@ -44,6 +43,11 @@ class TogetherEmbeddings:
         self.api_url = "https://api.together.xyz/v1/embeddings"
         
         print(f"Initialized Together Embeddings with model: {self.model_name}")
+    
+    def load_config(self):
+        config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'config', 'config.yaml')
+        with open(config_path, 'r') as f:
+            return yaml.safe_load(f)
     
     def get_embeddings(self, texts: List[str]) -> List[List[float]]:
         """

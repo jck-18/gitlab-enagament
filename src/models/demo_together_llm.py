@@ -6,7 +6,7 @@ Demo script showing how to use the TogetherLLM class with the Llama-3.3-70B mode
 import os
 import sys
 from dotenv import load_dotenv
-from together_llm import TogetherLLM
+from .together_llm import TogetherLLM
 
 def main():
     """Main function to demonstrate TogetherLLM functionality."""

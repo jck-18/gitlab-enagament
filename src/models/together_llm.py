@@ -3,9 +3,15 @@ import json
 from typing import List, Dict, Optional, Union, Any, Generator, cast
 from dotenv import load_dotenv
 from together import Together
+import yaml
 
 # Load environment variables from .env file
 load_dotenv()
+
+def load_config():
+    config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'config', 'config.yaml')
+    with open(config_path, 'r') as f:
+        return yaml.safe_load(f)
 
 class TogetherLLM:
     """
@@ -26,10 +32,8 @@ class TogetherLLM:
         if not self.api_key:
             # Try to load from config file
             try:
-                with open('config/config.yaml', 'r') as f:
-                    import yaml
-                    config = yaml.safe_load(f)
-                    self.api_key = config.get('together_api_key')
+                config = load_config()
+                self.api_key = config.get('together_api_key')
             except:
                 pass
                 
@@ -143,8 +147,8 @@ Context:
 
 User Question: {query}
 
-Please provide a comprehensive answer to the question based only on the information in the context. 
-If the context doesn't contain relevant information to answer the question, say "I don't have enough information to answer this question."
+Please provide a comprehensive answer to the question based on the information in the context. 
+If the context doesn't contain relevant information to answer the question, use the internet to find the answer."
 """
         return prompt
     

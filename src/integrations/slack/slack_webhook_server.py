@@ -6,7 +6,8 @@ import time
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 import sqlite3
-from together_rag import TogetherRAG
+from src.core.together_rag import TogetherRAG
+import requests
 
 # Load environment variables
 load_dotenv()
@@ -69,6 +70,7 @@ def slack_events():
     # Handle different types of interactions
     if payload.get('type') == 'block_actions':
         for action in payload.get('actions', []):
+            # Handle Generate Draft Response button
             if action.get('action_id') == 'generate_draft':
                 post_id = action.get('value')
                 
@@ -100,6 +102,94 @@ def slack_events():
                                 "text": {
                                     "type": "mrkdwn",
                                     "text": f"*Draft response for:* {title}\n\n{response_text}"
+                                }
+                            },
+                            {
+                                "type": "context",
+                                "elements": [
+                                    {
+                                        "type": "mrkdwn",
+                                        "text": f"<{url}|View original post on Reddit>"
+                                    }
+                                ]
+                            }
+                        ]
+                    })
+                
+                conn.close()
+            
+            # Handle RAG Analysis button
+            elif action.get('action_id') == 'run_rag_analysis':
+                post_id = action.get('value')
+                
+                # Get post from database
+                conn = sqlite3.connect('reddit_posts.db')
+                cursor = conn.cursor()
+                cursor.execute("SELECT title, content, url FROM posts WHERE id = ?", (post_id,))
+                post_data = cursor.fetchone()
+                
+                if post_data:
+                    title, content, url = post_data
+                    
+                    # First, send an acknowledgment message to show we're processing
+                    response_url = payload.get('response_url')
+                    if response_url:
+                        requests.post(response_url, json={
+                            "text": f"Processing RAG analysis for: {title}...",
+                            "response_type": "ephemeral"
+                        })
+                    
+                    # Generate RAG analysis
+                    query = f"Analyze this GitLab-related post and provide insights: {title}\n\nContent: {content}"
+                    response_data = rag.generate_response(query)
+                    analysis_text = response_data.get('response', 'No analysis generated')
+                    
+                    # Extract sources used in the analysis
+                    sources = []
+                    for doc in response_data.get('retrieved_documents', []):
+                        if 'metadata' in doc and 'source' in doc['metadata']:
+                            sources.append(doc['metadata']['source'])
+                    
+                    # Format sources as a string
+                    sources_text = "\n".join([f"• {source}" for source in sources]) if sources else "No specific sources used"
+                    
+                    # Send the analysis back to Slack
+                    return jsonify({
+                        "response_type": "in_channel",
+                        "text": f"RAG Analysis for: {title}",
+                        "blocks": [
+                            {
+                                "type": "header",
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "RAG Analysis Results"
+                                }
+                            },
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": f"*Post:* {title}"
+                                }
+                            },
+                            {
+                                "type": "divider"
+                            },
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": analysis_text
+                                }
+                            },
+                            {
+                                "type": "divider"
+                            },
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": "*Sources Used:*\n" + sources_text
                                 }
                             },
                             {

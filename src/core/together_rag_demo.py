@@ -11,7 +11,7 @@ import os
 import argparse
 import json
 from dotenv import load_dotenv
-from together_rag import TogetherRAG, HAS_CHROMADB
+from .together_rag import TogetherRAG, HAS_CHROMADB
 
 # Load environment variables
 load_dotenv()

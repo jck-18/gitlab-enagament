@@ -11,8 +11,10 @@ import sys
 import os
 import argparse
 from pathlib import Path
-from together_llm import TogetherLLM
-from together_rag import TogetherRAG
+from typing import Optional, Union
+from ..models.together_llm import TogetherLLM
+from .together_rag import TogetherRAG
+import traceback
 
 def parse_args():
     """Parse command-line arguments."""
@@ -33,18 +35,52 @@ def parse_args():
                         help="Directory to store ChromaDB persistence (default: './chroma_db')")
     return parser.parse_args()
 
+def get_knowledge_dir(knowledge_dir):
+    """Get the correct knowledge directory path."""
+    workspace_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    
+    # Try different possible locations
+    possible_paths = [
+        knowledge_dir,
+        os.path.join(workspace_root, 'knowledgebase'),
+        os.path.join(workspace_root, knowledge_dir.lstrip('.').lstrip('/').lstrip('\\'))
+    ]
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            return path
+            
+    raise ValueError(f"Knowledge directory not found in any of the expected locations: {possible_paths}")
+
+def get_chroma_dir(chroma_dir: Optional[str]) -> str:
+    """Get the correct chroma directory path."""
+    workspace_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    
+    # Try different possible locations
+    possible_paths = [
+        chroma_dir if chroma_dir else os.path.join(workspace_root, 'chroma_db'),
+        os.path.join(workspace_root, 'chroma_db'),
+        os.path.join(workspace_root, chroma_dir.lstrip('.').lstrip('/').lstrip('\\')) if chroma_dir else None
+    ]
+    
+    for path in possible_paths:
+        if path and os.path.exists(path):
+            return path
+    # If no existing path found, return the default
+    return os.path.join(workspace_root, 'chroma_db')
+
 def main():
     """Main function to test the RAG model."""
     try:
         # Parse command-line arguments
         args = parse_args()
         query = args.query
-        knowledge_dir = args.knowledge_dir
+        knowledge_dir = get_knowledge_dir(args.knowledge_dir)
         top_k = args.top_k
         embedding_model = args.embedding_model
         llm_model = args.llm_model
         skip_loading = args.skip_loading
-        chroma_dir = args.chroma_dir
+        chroma_dir = get_chroma_dir(args.chroma_dir)
         
         # Check if we're running from the src directory and need to adjust paths
         if os.path.basename(os.getcwd()) == 'src' and knowledge_dir == '../knowledgebase':
@@ -214,7 +250,6 @@ def main():
         
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
-        import traceback
         traceback.print_exc()
 
 def format_prompt(query, retrieved_docs):

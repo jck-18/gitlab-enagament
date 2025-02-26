@@ -165,3 +165,8 @@ knowledge_base_*.md
 venv_old/
 ./venv_old/
 /venv_old/
+
+# Project specific directories
+chroma_db/
+results/
+knowledgebase/

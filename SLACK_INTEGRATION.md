@@ -142,6 +142,34 @@ To send data to your Slack workflow:
    python src/trigger_slack_workflow.py --url "https://gitlab.com/docs/ci-cd" --title "How to set up GitLab CI/CD"
    ```
 
+## Using the RAG Analysis Button
+
+The integration now includes a "RAG Analysis" button under each Reddit post notification in Slack. This button triggers the Retrieval-Augmented Generation (RAG) pipeline to analyze the post and provide insights based on your knowledge base.
+
+### How It Works
+
+1. When a Reddit post is sent to Slack, it includes two buttons:
+   - "Generate Draft Response" - Creates a draft response to the post
+   - "RAG Analysis" - Performs an in-depth analysis using the RAG system
+
+2. Clicking the "RAG Analysis" button:
+   - Triggers the RAG pipeline to analyze the post content
+   - Retrieves relevant information from your knowledge base
+   - Generates an analysis with insights about the post
+   - Shows the sources used in the analysis
+
+3. The analysis is posted in the Slack channel for everyone to see
+
+### Running RAG Analysis Manually
+
+You can also trigger a RAG analysis manually using the command line:
+
+```bash
+python src/trigger_slack_workflow.py --rag --url "https://example.com/post" --title "Post Title" --content "Post content to analyze"
+```
+
+This will run the RAG analysis and print the results to the console.
+
 ## Troubleshooting
 
 - **Webhook Not Working**: Check that your server is publicly accessible and that the URL in Slack's interactivity settings is correct

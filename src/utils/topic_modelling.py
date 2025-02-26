@@ -4,6 +4,7 @@ from gensim import corpora, models
 from gensim.utils import simple_preprocess
 import nltk
 from nltk.corpus import stopwords
+import os
 
 # Ensure NLTK stopwords are downloaded
 nltk.download('stopwords')
@@ -52,9 +53,13 @@ def run_topic_modeling():
         print(topic)
     
     # Optionally, save topics to a file for later use
-    with open("topics.txt", "w") as f:
-        for topic in topics:
-            f.write(str(topic) + "\n")
+    save_topics(lda_model.show_topics(num_words=5, formatted=False))
+
+def save_topics(topics_dict):
+    output_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'topics.txt')
+    with open(output_path, "w") as f:
+        for topic_id, words in topics_dict.items():
+            f.write(f"Topic {topic_id}: {', '.join(words)}\n")
 
 if __name__ == '__main__':
     run_topic_modeling()

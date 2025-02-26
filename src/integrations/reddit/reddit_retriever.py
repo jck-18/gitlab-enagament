@@ -77,6 +77,15 @@ def send_to_slack(post, config):
                         },
                         "value": f"{post.id}",
                         "action_id": "generate_draft"
+                    },
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "RAG Analysis"
+                        },
+                        "value": f"{post.id}",
+                        "action_id": "run_rag_analysis"
                     }
                 ]
             }
@@ -149,7 +158,7 @@ def retrieve_reddit_posts():
     for subreddit in subreddits:
         sub = reddit.subreddit(subreddit)
         print(f"Fetching recent posts from r/{subreddit}...")
-        for post in sub.new(limit=20):
+        for post in sub.new(limit=5):
             # Skip posts older than specified days
             post_time = datetime.fromtimestamp(post.created_utc)
             if post_time < day_ago:

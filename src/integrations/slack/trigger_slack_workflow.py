@@ -11,6 +11,7 @@ import requests
 import json
 import argparse
 from dotenv import load_dotenv
+from src.core.together_rag import TogetherRAG
 
 # Load environment variables
 load_dotenv()
@@ -79,12 +80,62 @@ def trigger_slack_workflow(url, title, additional_data=None):
         print(f"Error triggering Slack workflow: {e}")
         return False
 
+def trigger_rag_analysis(url, title, content=None):
+    """
+    Trigger a RAG analysis and return the results.
+    
+    Args:
+        url: The URL of the content to analyze
+        title: The title of the content
+        content: The content to analyze (optional)
+    
+    Returns:
+        Dictionary with analysis results
+    """
+    # Initialize RAG system
+    rag = TogetherRAG()
+    
+    # Prepare query
+    if content:
+        query = f"Analyze this GitLab-related post and provide insights: {title}\n\nContent: {content}"
+    else:
+        query = f"Analyze this GitLab-related post and provide insights: {title}"
+    
+    # Generate RAG analysis
+    try:
+        print(f"Generating RAG analysis for: {title}")
+        response_data = rag.generate_response(query)
+        
+        # Extract sources used in the analysis
+        sources = []
+        for doc in response_data.get('retrieved_documents', []):
+            if 'metadata' in doc and 'source' in doc['metadata']:
+                sources.append(doc['metadata']['source'])
+        
+        # Return results
+        return {
+            "success": True,
+            "title": title,
+            "url": url,
+            "analysis": response_data.get('response', 'No analysis generated'),
+            "sources": sources
+        }
+    
+    except Exception as e:
+        print(f"Error generating RAG analysis: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
 def main():
     """Main function to parse arguments and trigger the workflow."""
-    parser = argparse.ArgumentParser(description='Trigger a Slack workflow with data.')
-    parser.add_argument('--url', required=True, help='The URL to send to the workflow')
-    parser.add_argument('--title', required=True, help='The title to send to the workflow')
+    parser = argparse.ArgumentParser(description='Trigger a Slack workflow with data or run RAG analysis.')
+    parser.add_argument('--url', required=True, help='The URL to send to the workflow or analyze')
+    parser.add_argument('--title', required=True, help='The title to send to the workflow or analyze')
     parser.add_argument('--data', help='JSON string of additional data to include')
+    parser.add_argument('--content', help='Content to analyze with RAG')
+    parser.add_argument('--rag', action='store_true', help='Run RAG analysis instead of triggering workflow')
     
     args = parser.parse_args()
     
@@ -97,15 +148,28 @@ def main():
             print("Error: --data must be a valid JSON string")
             sys.exit(1)
     
-    # Trigger the workflow
-    success = trigger_slack_workflow(
-        url=args.url,
-        title=args.title,
-        additional_data=additional_data
-    )
+    # Run RAG analysis if requested
+    if args.rag:
+        results = trigger_rag_analysis(
+            url=args.url,
+            title=args.title,
+            content=args.content
+        )
+        
+        # Print results
+        print(json.dumps(results, indent=2))
+        sys.exit(0 if results.get('success', False) else 1)
     
-    # Exit with appropriate code
-    sys.exit(0 if success else 1)
+    # Otherwise trigger the workflow
+    else:
+        success = trigger_slack_workflow(
+            url=args.url,
+            title=args.title,
+            additional_data=additional_data
+        )
+        
+        # Exit with appropriate code
+        sys.exit(0 if success else 1)
 
 if __name__ == '__main__':
     main() 
