@@ -1,18 +1,19 @@
 # GitLab Documentation RAG Assistant
 
-This project implements a Retrieval-Augmented Generation (RAG) system for GitLab documentation. It processes markdown files from the knowledgebase directory, creates embeddings, and retrieves relevant information to answer user queries.
+This project implements a Retrieval-Augmented Generation (RAG) system for GitLab documentation using Together AI's API. It processes markdown files from the knowledgebase directory, creates embeddings, and retrieves relevant information to answer user queries.
 
 ## Features
 
 - Processes markdown files from the knowledgebase directory and its subdirectories
-- Creates embeddings using Sentence Transformers
-- Retrieves relevant documents based on cosine similarity
+- Creates embeddings using Together AI's embedding models
+- Retrieves relevant documents based on semantic similarity
 - Integrates with Reddit to process GitLab-related questions
-- Generates responses based on retrieved documents
+- Generates responses using Together AI's LLM models
 - Formats prompts for LLM integration
-- **NEW**: Integration with Google Gemini API for response generation
-- **NEW**: Support for different Gemini models (gemini-2.0-flash, etc.)
-- **NEW**: Slack integration for notifications and interactive workflows
+- Slack integration for notifications and interactive workflows
+- ChromaDB integration for persistent vector storage
+- Interactive mode for real-time querying
+- Support for multiple Together AI models
 
 ## Project Structure
 
@@ -20,18 +21,30 @@ This project implements a Retrieval-Augmented Generation (RAG) system for GitLab
 .
 ├── knowledgebase/         # GitLab documentation in markdown format
 ├── src/                   # Source code
-│   ├── rag_model.py       # RAG model implementation
-│   ├── gitlab_rag_assistant.py  # Main script to run the RAG assistant
-│   ├── reddit_retriever.py      # Script to retrieve Reddit posts
-│   ├── llm_integration.py       # LLM integration with Google Gemini
-│   ├── slack_webhook_server.py  # Flask server for Slack webhooks
-│   ├── trigger_slack_workflow.py # Script to trigger Slack workflows
-│   └── ...
-├── results/               # Generated prompts and responses
-├── requirements.txt       # Python dependencies
-├── README.md              # This file
-└── SLACK_INTEGRATION.md   # Detailed Slack integration instructions
+│   ├── core/             # Core RAG implementation
+│   │   ├── together_rag.py       # Main RAG implementation
+│   │   └── test_rag.py          # Testing utilities
+│   ├── models/           # Model implementations
+│   │   ├── together_llm.py       # LLM integration
+│   │   └── together_embeddings.py # Embeddings integration
+│   ├── integrations/     # External integrations
+│   │   ├── slack/              # Slack integration
+│   │   └── reddit/             # Reddit integration
+│   └── utils/            # Utility functions
+├── config/               # Configuration files
+├── results/              # Generated prompts and responses
+├── chroma_db/            # ChromaDB persistence directory
+├── requirements.txt      # Python dependencies
+├── README.md             # This file
+├── SLACK_INTEGRATION.md  # Detailed Slack integration instructions
+└── together_rag_README.md # Together AI RAG implementation details
 ```
+
+## Documentation
+
+- [Main README](README.md) - Overview and general setup
+- [Together RAG Documentation](together_rag_README.md) - Details about the Together AI RAG implementation
+- [Slack Integration Guide](SLACK_INTEGRATION.md) - Instructions for setting up Slack integration
 
 ## Installation
 
@@ -42,131 +55,102 @@ This project implements a Retrieval-Augmented Generation (RAG) system for GitLab
 pip install -r requirements.txt
 ```
 
-3. Set up the Google Gemini API key (optional, for LLM integration):
+3. Set up the Together AI API key:
+   - Set the `TOGETHER_API_KEY` environment variable, or
+   - Add it to `config/config.yaml`, or
+   - Pass it directly to the constructor
 
+4. (Optional) Install ChromaDB for persistent vector storage:
 ```bash
-python src/gitlab_rag_assistant.py --setup-llm
+pip install chromadb
 ```
 
-4. Set up Slack integration (optional, see SLACK_INTEGRATION.md for details)
+5. (Optional) Set up Slack integration (see [SLACK_INTEGRATION.md](SLACK_INTEGRATION.md) for details)
 
 ## Usage
 
-### Process a specific query
+### Basic Query Processing
 
 ```bash
-python src/gitlab_rag_assistant.py --query "How do I set up GitLab CI/CD pipelines with Docker?"
+python src/core/test_rag.py --query "How do I set up GitLab CI/CD pipelines with Docker?"
 ```
 
-### Process a query with LLM response generation
+### Interactive Mode
 
 ```bash
-python src/gitlab_rag_assistant.py --query "How do I set up GitLab CI/CD pipelines with Docker?" --use-llm
+python src/core/together_rag_demo.py --knowledge_dir knowledgebase --interactive
 ```
 
-### Process a query with a specific Gemini model
+### Process Reddit Posts
 
 ```bash
-python src/gitlab_rag_assistant.py --query "How do I set up GitLab CI/CD pipelines with Docker?" --use-llm --llm-model "gemini-2.0-flash"
-```
-
-### Process Reddit posts
-
-First, fetch new Reddit posts:
-
-```bash
-python src/reddit_retriever.py
-```
-
-Then, process the posts:
-
-```bash
-python src/gitlab_rag_assistant.py
+python src/integrations/reddit/reddit_retriever.py
 ```
 
 ### Use Slack Integration
 
-Start the Slack webhook server:
-
 ```bash
-python src/slack_webhook_server.py
+python src/integrations/slack/slack_webhook_server.py
 ```
 
-Trigger a Slack workflow:
+### Additional Options
 
-```bash
-python src/trigger_slack_workflow.py --url "https://gitlab.com/docs/ci-cd" --title "How do I set up GitLab CI/CD pipelines with Docker?"
-```
+- `--knowledge_dir`: Path to the knowledgebase directory (default: "knowledgebase")
+- `--top_k`: Number of documents to retrieve (default: 3)
+- `--embedding_model`: Together AI embedding model to use (default: "togethercomputer/m2-bert-80M-8k-retrieval")
+- `--llm_model`: Together AI LLM model to use (default: "mistralai/Mixtral-8x7B-Instruct-v0.1")
+- `--use_chroma`: Use ChromaDB for vector storage
+- `--chroma_dir`: Directory for ChromaDB persistence
 
-### Additional options
+## Available Models
 
-- `--knowledgebase`: Path to the knowledgebase directory (default: "knowledgebase")
-- `--top-k`: Number of top documents to retrieve (default: 3)
-- `--model`: Sentence transformer model to use (default: "all-MiniLM-L6-v2")
-- `--use-llm`: Use LLM for response generation
-- `--llm-model`: Gemini model to use (default: "gemini-2.0-flash")
-- `--setup-llm`: Set up the LLM API key
+### Embedding Models
+- `togethercomputer/m2-bert-80M-8k-retrieval` (default)
+- `togethercomputer/m2-bert-80M-32k-retrieval`
+- Other models available on Together AI
+
+### LLM Models
+- `mistralai/Mixtral-8x7B-Instruct-v0.1` (default)
+- `meta-llama/Llama-2-70b-chat-hf`
+- `togethercomputer/llama-2-7b-chat`
+- Other models available on Together AI
 
 ## RAG Implementation Details
 
 The RAG implementation consists of the following components:
 
-1. **Document Processing**: Markdown files are loaded from the knowledgebase directory and chunked into smaller pieces.
+1. **Document Processing**: Markdown files are loaded and chunked into smaller pieces.
+2. **Embedding Creation**: Chunks are embedded using Together AI's embedding models.
+3. **Vector Storage**: Embeddings are stored in ChromaDB (if installed) or in memory.
+4. **Retrieval**: Queries are embedded and compared to document embeddings using semantic similarity.
+5. **Response Generation**: Responses are generated using Together AI's LLM models.
 
-2. **Embedding Creation**: The chunks are embedded using a Sentence Transformer model.
-
-3. **Retrieval**: When a query is received, it is embedded and compared to the document embeddings using cosine similarity. The most relevant documents are retrieved.
-
-4. **Response Generation**: A response is generated based on the retrieved documents. This can be done using a template or using the Google Gemini API.
-
-5. **Prompt Formatting**: The retrieved documents and query are formatted into a prompt for an LLM.
-
-## LLM Integration
-
-The project integrates with the Google Gemini API for response generation. To use this feature:
-
-1. Set up a Google API key at https://ai.google.dev/
-2. Run `python src/gitlab_rag_assistant.py --setup-llm` to configure the API key
-3. Use the `--use-llm` flag when running the assistant
-4. Optionally, specify a Gemini model with `--llm-model` (default is "gemini-2.0-flash")
-
-### Available Gemini Models
-
-- `gemini-2.0-flash`: Balanced model for most use cases (default)
-- `gemini-2.0-pro`: More powerful model for complex reasoning
-- `gemini-1.5-flash`: Older version with good performance
-- `gemini-1.5-pro`: Older version with more capabilities
+For detailed implementation information, see [together_rag_README.md](together_rag_README.md).
 
 ## Slack Integration
 
-The project integrates with Slack for notifications and interactive workflows. This allows you to:
+The project includes comprehensive Slack integration features:
+- Receive notifications for new GitLab-related Reddit posts
+- Generate draft responses directly from Slack
+- Run RAG analysis on posts with interactive buttons
+- Create custom workflows for automation
 
-1. Receive notifications in Slack when new GitLab-related Reddit posts are detected
-2. Generate draft responses to these posts directly from Slack
-3. Create custom workflows in Slack that trigger actions in the RAG system
-
-For detailed setup instructions, see [SLACK_INTEGRATION.md](SLACK_INTEGRATION.md).
-
-## Sample Prompt Construction
-
-```
-You are a helpful GitLab documentation assistant. 
-Use the below references to answer the question accurately:
-
-Reference 1: {chunk_text_1}
-Reference 2: {chunk_text_2}
-...
-
-User Query: "{User's question: e.g. How do I set up GitLab CI/CD pipelines with Docker?}"
-
-Instruction: Combine all references to create the best possible answer. If unsure, say so.
-```
+For setup instructions and details, see [SLACK_INTEGRATION.md](SLACK_INTEGRATION.md).
 
 ## Future Improvements
 
-- Implement more sophisticated chunking strategies
+- Implement advanced RAG techniques (re-ranking, query expansion)
 - Add support for more document formats
-- Integrate with additional LLM providers
-- Implement a web interface for easier interaction
-- Add support for document filtering based on metadata
+- Enhance chunking strategies
+- Add web interface for easier interaction
+- Implement document filtering based on metadata
+- Add support for more LLM providers
 - Enhance Slack integration with more interactive features
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
