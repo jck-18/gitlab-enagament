@@ -2,7 +2,7 @@
 
 This project implements a Retrieval-Augmented Generation (RAG) system for GitLab documentation using Together AI's API. It processes markdown files from the knowledgebase directory, creates embeddings, and retrieves relevant information to answer user queries.
 
-I EDITED THE FILE STRUCTURE AT THE LAST MINUITE AND HENCE A LOT OF FILES WERE NOT RUNNING DURING THE VIDEO PRESENTATION
+I EDITED THE FILE STRUCTURE AT THE LAST MINUITE AND HENCE A LOT OF FILES WERE NOT RUNNING DURING THE VIDEO PRESENTATION, TILL BEFORE THE ORGANIZE DIRECTORY STRUCTURE COMMIT ALL THE FIELS WERE PROPERLY GIVING OUTPUTS
 
 ## Features
 
