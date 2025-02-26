@@ -41,5 +41,10 @@ python-dotenv>=1.0.0  # For managing environment variables
 # Reddit API
 praw>=7.0.0
 
+# Web server and Slack integration
+flask>=2.0.0
+gunicorn>=20.1.0  # WSGI HTTP Server
+slack-sdk>=3.19.0  # Slack SDK for more advanced integrations
+
 
 

@@ -12,6 +12,7 @@ This project implements a Retrieval-Augmented Generation (RAG) system for GitLab
 - Formats prompts for LLM integration
 - **NEW**: Integration with Google Gemini API for response generation
 - **NEW**: Support for different Gemini models (gemini-2.0-flash, etc.)
+- **NEW**: Slack integration for notifications and interactive workflows
 
 ## Project Structure
 
@@ -23,10 +24,13 @@ This project implements a Retrieval-Augmented Generation (RAG) system for GitLab
 │   ├── gitlab_rag_assistant.py  # Main script to run the RAG assistant
 │   ├── reddit_retriever.py      # Script to retrieve Reddit posts
 │   ├── llm_integration.py       # LLM integration with Google Gemini
+│   ├── slack_webhook_server.py  # Flask server for Slack webhooks
+│   ├── trigger_slack_workflow.py # Script to trigger Slack workflows
 │   └── ...
 ├── results/               # Generated prompts and responses
 ├── requirements.txt       # Python dependencies
-└── README.md              # This file
+├── README.md              # This file
+└── SLACK_INTEGRATION.md   # Detailed Slack integration instructions
 ```
 
 ## Installation
@@ -43,6 +47,8 @@ pip install -r requirements.txt
 ```bash
 python src/gitlab_rag_assistant.py --setup-llm
 ```
+
+4. Set up Slack integration (optional, see SLACK_INTEGRATION.md for details)
 
 ## Usage
 
@@ -69,13 +75,27 @@ python src/gitlab_rag_assistant.py --query "How do I set up GitLab CI/CD pipelin
 First, fetch new Reddit posts:
 
 ```bash
-python src/gitlab_rag_assistant.py --fetch-reddit
+python src/reddit_retriever.py
 ```
 
 Then, process the posts:
 
 ```bash
 python src/gitlab_rag_assistant.py
+```
+
+### Use Slack Integration
+
+Start the Slack webhook server:
+
+```bash
+python src/slack_webhook_server.py
+```
+
+Trigger a Slack workflow:
+
+```bash
+python src/trigger_slack_workflow.py --url "https://gitlab.com/docs/ci-cd" --title "How do I set up GitLab CI/CD pipelines with Docker?"
 ```
 
 ### Additional options
@@ -117,6 +137,16 @@ The project integrates with the Google Gemini API for response generation. To us
 - `gemini-1.5-flash`: Older version with good performance
 - `gemini-1.5-pro`: Older version with more capabilities
 
+## Slack Integration
+
+The project integrates with Slack for notifications and interactive workflows. This allows you to:
+
+1. Receive notifications in Slack when new GitLab-related Reddit posts are detected
+2. Generate draft responses to these posts directly from Slack
+3. Create custom workflows in Slack that trigger actions in the RAG system
+
+For detailed setup instructions, see [SLACK_INTEGRATION.md](SLACK_INTEGRATION.md).
+
 ## Sample Prompt Construction
 
 ```
@@ -139,3 +169,4 @@ Instruction: Combine all references to create the best possible answer. If unsur
 - Integrate with additional LLM providers
 - Implement a web interface for easier interaction
 - Add support for document filtering based on metadata
+- Enhance Slack integration with more interactive features
