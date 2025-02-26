@@ -83,8 +83,28 @@ def slack_events():
                 if post_data:
                     title, content, url = post_data
                     
-                    # Generate response using RAG
-                    query = f"How to respond to this GitLab question: {title}"
+                    # First, send an acknowledgment message to show we're processing
+                    response_url = payload.get('response_url')
+                    if response_url:
+                        requests.post(response_url, json={
+                            "text": f"Generating draft response for: {title}...",
+                            "response_type": "ephemeral"
+                        })
+                    
+                    # Generate response using RAG with a more detailed prompt
+                    query = f"""Create a comprehensive response to this GitLab question:
+Title: {title}
+Content: {content}
+
+Please provide:
+1. A friendly and professional greeting
+2. A clear and concise answer to the question
+3. Step-by-step instructions if applicable
+4. Links to relevant GitLab documentation
+5. A polite closing
+"""
+                    
+                    # Get RAG response
                     response_data = rag.generate_response(query)
                     response_text = response_data.get('response', 'No response generated')
                     
@@ -92,24 +112,86 @@ def slack_events():
                     cursor.execute("UPDATE posts SET draft_response = ? WHERE id = ?", (response_text, post_id))
                     conn.commit()
                     
+                    # Extract sources used in the response
+                    sources = []
+                    for doc in response_data.get('retrieved_documents', []):
+                        if 'metadata' in doc and 'source' in doc['metadata']:
+                            sources.append(doc['metadata']['source'])
+                    
+                    # Format sources as a string with links if available
+                    sources_text = ""
+                    if sources:
+                        for source in sources:
+                            # Check if source contains a URL
+                            if source.startswith(('http://', 'https://', 'www.')):
+                                sources_text += f"• <{source}|{source.split('/')[-1]}>\n"
+                            else:
+                                sources_text += f"• {source}\n"
+                    else:
+                        sources_text = "No specific sources used"
+                    
                     # Send response back to Slack
                     return jsonify({
                         "response_type": "in_channel",
                         "text": f"Draft response for: {title}",
                         "blocks": [
                             {
-                                "type": "section",
+                                "type": "header",
                                 "text": {
-                                    "type": "mrkdwn",
-                                    "text": f"*Draft response for:* {title}\n\n{response_text}"
+                                    "type": "plain_text",
+                                    "text": "Draft Response",
+                                    "emoji": True
                                 }
                             },
                             {
-                                "type": "context",
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": f"*For:* <{url}|{title}>"
+                                }
+                            },
+                            {
+                                "type": "divider"
+                            },
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": response_text
+                                }
+                            },
+                            {
+                                "type": "divider"
+                            },
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": "*Sources Used:*\n" + sources_text
+                                }
+                            },
+                            {
+                                "type": "actions",
                                 "elements": [
                                     {
-                                        "type": "mrkdwn",
-                                        "text": f"<{url}|View original post on Reddit>"
+                                        "type": "button",
+                                        "text": {
+                                            "type": "plain_text",
+                                            "text": "Run RAG Analysis",
+                                            "emoji": True
+                                        },
+                                        "value": f"{post_id}",
+                                        "action_id": "run_rag_analysis"
+                                    },
+                                    {
+                                        "type": "button",
+                                        "text": {
+                                            "type": "plain_text",
+                                            "text": "View on Reddit",
+                                            "emoji": True
+                                        },
+                                        "url": url,
+                                        "action_id": "view_reddit"
                                     }
                                 ]
                             }
@@ -139,8 +221,19 @@ def slack_events():
                             "response_type": "ephemeral"
                         })
                     
-                    # Generate RAG analysis
-                    query = f"Analyze this GitLab-related post and provide insights: {title}\n\nContent: {content}"
+                    # Generate RAG analysis with a more detailed prompt
+                    query = f"""Analyze this GitLab-related post and provide insights:
+Title: {title}
+Content: {content}
+
+Please provide:
+1. A summary of the main issue or question
+2. Key technical concepts mentioned
+3. Potential solutions based on GitLab documentation
+4. Any additional context that might be helpful
+"""
+                    
+                    # Get RAG response
                     response_data = rag.generate_response(query)
                     analysis_text = response_data.get('response', 'No analysis generated')
                     
@@ -150,10 +243,19 @@ def slack_events():
                         if 'metadata' in doc and 'source' in doc['metadata']:
                             sources.append(doc['metadata']['source'])
                     
-                    # Format sources as a string
-                    sources_text = "\n".join([f"• {source}" for source in sources]) if sources else "No specific sources used"
+                    # Format sources as a string with links if available
+                    sources_text = ""
+                    if sources:
+                        for source in sources:
+                            # Check if source contains a URL
+                            if source.startswith(('http://', 'https://', 'www.')):
+                                sources_text += f"• <{source}|{source.split('/')[-1]}>\n"
+                            else:
+                                sources_text += f"• {source}\n"
+                    else:
+                        sources_text = "No specific sources used"
                     
-                    # Send the analysis back to Slack
+                    # Send the enhanced analysis back to Slack
                     return jsonify({
                         "response_type": "in_channel",
                         "text": f"RAG Analysis for: {title}",
@@ -162,14 +264,15 @@ def slack_events():
                                 "type": "header",
                                 "text": {
                                     "type": "plain_text",
-                                    "text": "RAG Analysis Results"
+                                    "text": "RAG Analysis Results",
+                                    "emoji": True
                                 }
                             },
                             {
                                 "type": "section",
                                 "text": {
                                     "type": "mrkdwn",
-                                    "text": f"*Post:* {title}"
+                                    "text": f"*Post:* <{url}|{title}>"
                                 }
                             },
                             {
@@ -193,11 +296,28 @@ def slack_events():
                                 }
                             },
                             {
-                                "type": "context",
+                                "type": "actions",
                                 "elements": [
                                     {
-                                        "type": "mrkdwn",
-                                        "text": f"<{url}|View original post on Reddit>"
+                                        "type": "button",
+                                        "text": {
+                                            "type": "plain_text",
+                                            "text": "Generate Draft Response",
+                                            "emoji": True
+                                        },
+                                        "value": f"{post_id}",
+                                        "action_id": "generate_draft",
+                                        "style": "primary"
+                                    },
+                                    {
+                                        "type": "button",
+                                        "text": {
+                                            "type": "plain_text",
+                                            "text": "View on Reddit",
+                                            "emoji": True
+                                        },
+                                        "url": url,
+                                        "action_id": "view_reddit"
                                     }
                                 ]
                             }
@@ -212,6 +332,122 @@ def slack_events():
 @app.route('/health', methods=['GET'])
 def health_check():
     return jsonify({"status": "ok"}), 200
+
+@app.route('/slack/rag-query', methods=['POST'])
+def rag_query():
+    """
+    Handle direct RAG queries from Slack slash commands.
+    Example: /rag-query How do I set up GitLab CI/CD pipelines?
+    """
+    # Verify the request is from Slack
+    request_body = request.get_data().decode('utf-8')
+    timestamp = request.headers.get('X-Slack-Request-Timestamp', '')
+    signature = request.headers.get('X-Slack-Signature', '')
+    
+    if not verify_slack_request(request_body, timestamp, signature):
+        return jsonify({"error": "Invalid request signature"}), 403
+    
+    # Get the query from the request
+    query = request.form.get('text', '')
+    user_id = request.form.get('user_id', '')
+    channel_id = request.form.get('channel_id', '')
+    response_url = request.form.get('response_url', '')
+    
+    if not query:
+        return jsonify({
+            "response_type": "ephemeral",
+            "text": "Please provide a query. Example: `/rag-query How do I set up GitLab CI/CD pipelines?`"
+        })
+    
+    # Start processing in a separate thread
+    import threading
+    thread = threading.Thread(target=process_rag_query, args=(query, response_url))
+    thread.daemon = True
+    thread.start()
+    
+    # Send an immediate response to acknowledge receipt
+    return jsonify({
+        "response_type": "ephemeral",
+        "text": f"Processing your query: *{query}*\nThis may take a few seconds..."
+    })
+
+def process_rag_query(query, response_url):
+    """Process a RAG query and send the result to the response_url."""
+    try:
+        # Generate RAG response
+        response_data = rag.generate_response(query)
+        response_text = response_data.get('response', 'No response generated')
+        
+        # Extract sources
+        sources = []
+        for doc in response_data.get('retrieved_documents', []):
+            if 'metadata' in doc and 'source' in doc['metadata']:
+                sources.append(doc['metadata']['source'])
+        
+        # Format sources as a string with links if available
+        sources_text = ""
+        if sources:
+            for source in sources:
+                # Check if source contains a URL
+                if source.startswith(('http://', 'https://', 'www.')):
+                    sources_text += f"• <{source}|{source.split('/')[-1]}>\n"
+                else:
+                    sources_text += f"• {source}\n"
+        else:
+            sources_text = "No specific sources used"
+        
+        # Send the response back to Slack
+        if response_url:
+            payload = {
+                "response_type": "in_channel",
+                "blocks": [
+                    {
+                        "type": "header",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "GitLab RAG Query Results",
+                            "emoji": True
+                        }
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"*Query:* {query}"
+                        }
+                    },
+                    {
+                        "type": "divider"
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": response_text
+                        }
+                    },
+                    {
+                        "type": "divider"
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "*Sources Used:*\n" + sources_text
+                        }
+                    }
+                ]
+            }
+            requests.post(response_url, json=payload)
+    except Exception as e:
+        print(f"Error processing RAG query: {e}")
+        # Send error message back to Slack
+        if response_url:
+            payload = {
+                "response_type": "ephemeral",
+                "text": f"Error processing your query: {str(e)}"
+            }
+            requests.post(response_url, json=payload)
 
 if __name__ == '__main__':
     # Get port from environment variable or use default

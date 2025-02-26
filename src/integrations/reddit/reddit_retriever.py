@@ -1,8 +1,13 @@
 import yaml
 import praw
 import requests
+import os
 from sqlite3 import connect
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 def load_config(path='./config/config.yaml'):
     try:
@@ -41,11 +46,15 @@ def send_to_slack(post, config):
         post: The Reddit post object
         config: The loaded configuration
     """
-    # Get Slack webhook URL from config
-    slack_webhook_url = config.get('slack', {}).get('webhook_url')
+    # Get Slack webhook URL from environment variable first, then fallback to config
+    slack_webhook_url = os.getenv('SLACK_WEBHOOK_URL')
+    
+    # If not in environment, try to get from config as fallback
+    if not slack_webhook_url and config:
+        slack_webhook_url = config.get('slack', {}).get('webhook_url')
     
     if not slack_webhook_url:
-        print("Slack webhook URL not configured. Skipping Slack notification.")
+        print("Slack webhook URL not configured in environment or config. Skipping Slack notification.")
         return
     
     # Build a message payload using Slack's Block Kit for rich formatting
@@ -112,11 +121,15 @@ def trigger_slack_workflow(post, config):
         post: The Reddit post object
         config: The loaded configuration
     """
-    # Get Slack workflow webhook URL from config
-    workflow_webhook_url = config.get('slack', {}).get('workflow_webhook_url')
+    # Get Slack workflow webhook URL from environment variable first, then fallback to config
+    workflow_webhook_url = os.getenv('SLACK_WORKFLOW_WEBHOOK_URL')
+    
+    # If not in environment, try to get from config as fallback
+    if not workflow_webhook_url and config:
+        workflow_webhook_url = config.get('slack', {}).get('workflow_webhook_url')
     
     if not workflow_webhook_url:
-        print("Slack workflow webhook URL not configured. Skipping workflow trigger.")
+        print("Slack workflow webhook URL not configured in environment or config. Skipping workflow trigger.")
         return
     
     # Build a simple payload with the variables expected by the Slack workflow
