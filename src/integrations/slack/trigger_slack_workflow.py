@@ -40,17 +40,23 @@ def trigger_slack_workflow(url, title, additional_data=None):
     Returns:
         True if successful, False otherwise
     """
-    # Load configuration
-    config = load_config()
-    if not config:
-        print("Failed to load configuration.")
-        return False
+    # Get workflow webhook URL from environment variable
+    workflow_url = os.getenv('SLACK_WORKFLOW_WEBHOOK_URL')
     
-    # Get workflow webhook URL
-    workflow_url = config.get('slack', {}).get('workflow_webhook_url')
+    # If not in environment, try to load from config as fallback
     if not workflow_url:
-        print("Slack workflow webhook URL not configured in config.yaml.")
-        print("Please add 'workflow_webhook_url' under the 'slack' section.")
+        # Load configuration
+        config = load_config()
+        if not config:
+            print("Failed to load configuration.")
+            return False
+        
+        # Get workflow webhook URL from config
+        workflow_url = config.get('slack', {}).get('workflow_webhook_url')
+    
+    if not workflow_url:
+        print("Slack workflow webhook URL not configured in environment or config.yaml.")
+        print("Please set the SLACK_WORKFLOW_WEBHOOK_URL environment variable.")
         return False
     
     # Build payload with the expected variables

@@ -159,7 +159,7 @@ knowledge_base_*.md
 
 # Potentially sensitive information
 # Uncomment if you want to exclude config files with API keys
-# config/config.yaml
+config/config.yaml
 
 .cursor/rules
 venv_old/

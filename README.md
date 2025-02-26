@@ -67,6 +67,32 @@ pip install chromadb
 
 5. (Optional) Set up Slack integration (see [SLACK_INTEGRATION.md](SLACK_INTEGRATION.md) for details)
 
+## Security and Environment Variables
+
+To keep your API keys and sensitive information secure:
+
+1. Copy `.env.example` to `.env` and fill in your actual API keys and secrets:
+```bash
+cp .env.example .env
+```
+
+2. Edit the `.env` file with your actual credentials:
+```
+TOGETHER_API_KEY=your_actual_api_key
+SLACK_WEBHOOK_URL=your_actual_webhook_url
+SLACK_WORKFLOW_WEBHOOK_URL=your_actual_workflow_url
+SLACK_SIGNING_SECRET=your_actual_signing_secret
+```
+
+3. Copy `config/config.yaml.example` to `config/config.yaml` and customize it:
+```bash
+cp config/config.yaml.example config/config.yaml
+```
+
+4. **IMPORTANT**: Never commit your `.env` file or `config/config.yaml` to version control. They are already added to `.gitignore`.
+
+5. When using ngrok for development, be aware that the generated URLs provide public access to your local server. Never share these URLs publicly or commit them to version control.
+
 ## Usage
 
 ### Basic Query Processing

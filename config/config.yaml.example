@@ -28,23 +28,21 @@ company:
     - "nginx"
     - "sidekiq"
   response_tone: "professional, technical, helpful"
-  #docs_sitemap: "https://handbook.gitlab.com/sitemap.xml"         # Path to the XML sitemap for docs.gitlab.com
-  # API key for Together.ai is loaded from TOGETHER_API_KEY environment variable
-  #docs_url: "https://handbook.gitlab.com/handbook/"
+  #docs_sitemap: "https://docs.example.com/sitemap.xml"  # Path to the XML sitemap for docs
+  #docs_url: "https://docs.example.com/"
   
 reddit:
-  client_id: "qtYFFTMpwiVsLebMyZJR7g"
-  client_secret: "uAJgMhu95Y5PRlFwRx_z6T_FoRU9AA"
-  user_agent: "GitLabEngagementBot/0.1"
+  client_id: "YOUR_REDDIT_CLIENT_ID"
+  client_secret: "YOUR_REDDIT_CLIENT_SECRET"
+  user_agent: "YourAppName/0.1"
   days_back: 10
   
 slack:
-  # Webhook URLs are loaded from environment variables:
+  # Webhook URLs should be set in environment variables:
   # - SLACK_WEBHOOK_URL
   # - SLACK_WORKFLOW_WEBHOOK_URL
   
 topic_modeling:
   num_topics: 10
   passes: 20
-  random_state: 42
-
+  random_state: 42 

@@ -41,17 +41,23 @@ This document provides instructions on how to set up the Slack integration for t
 
 ### 4. Configure Your Application
 
-1. Open `config/config.yaml` and update the `slack` section:
-   ```yaml
-   slack:
-     webhook_url: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"  # Paste your webhook URL here
+1. Create a `.env` file in the root directory with your Slack credentials:
    ```
-
-2. Create a `.env` file in the root directory and add your Slack signing secret:
-   ```
+   SLACK_WEBHOOK_URL=your_slack_webhook_url
+   SLACK_WORKFLOW_WEBHOOK_URL=your_slack_workflow_webhook_url
    SLACK_SIGNING_SECRET=your_slack_signing_secret
    ```
    You can find your signing secret in the "Basic Information" section of your Slack app settings.
+
+2. For convenience, you can copy the example file:
+   ```bash
+   cp .env.example .env
+   ```
+   Then edit the `.env` file with your actual credentials.
+
+3. **IMPORTANT**: Never commit your `.env` file to version control. It's already added to `.gitignore`.
+
+4. The application will automatically load these environment variables using the `dotenv` package.
 
 ### 5. Set Up the Webhook Server
 
@@ -100,22 +106,22 @@ To create a custom workflow in Slack that triggers actions in your RAG system:
 
 To send data to your Slack workflow:
 
-1. Add the Slack workflow webhook URL to your configuration:
-   ```yaml
-   slack:
-     webhook_url: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
-     workflow_webhook_url: "https://hooks.slack.com/triggers/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"
+1. Add the Slack workflow webhook URL to your environment variables:
+   ```
+   SLACK_WORKFLOW_WEBHOOK_URL=your_slack_workflow_webhook_url
    ```
 
-2. Use the `requests` library to send data to the workflow webhook:
+2. The application will automatically use this environment variable to send data to the workflow:
    ```python
    import requests
    import json
+   import os
    
    def trigger_slack_workflow(url, title):
-       workflow_url = config.get('slack', {}).get('workflow_webhook_url')
+       workflow_url = os.getenv('SLACK_WORKFLOW_WEBHOOK_URL')
        if not workflow_url:
-           return
+           print("Slack workflow webhook URL not configured in environment variables.")
+           return False
            
        payload = {
            "url": url,
@@ -123,8 +129,12 @@ To send data to your Slack workflow:
        }
        
        response = requests.post(workflow_url, json=payload)
-       if response.status_code != 200:
+       if response.status_code == 200:
+           print("Successfully triggered Slack workflow!")
+           return True
+       else:
            print(f"Failed to trigger Slack workflow: {response.text}")
+           return False
    ```
 
 ## Testing the Integration
@@ -183,4 +193,43 @@ This will run the RAG analysis and print the results to the console.
 - Always verify incoming requests from Slack using the signing secret
 - Use HTTPS for all webhook endpoints
 - Regularly rotate your Slack app credentials
-- Be careful about what information you send to Slack, especially if it contains sensitive data 
+- Be careful about what information you send to Slack, especially if it contains sensitive data
+
+### Protecting Sensitive Information
+
+1. **Environment Variables**: Store all sensitive information in environment variables instead of configuration files:
+   ```
+   SLACK_WEBHOOK_URL=your_webhook_url
+   SLACK_WORKFLOW_WEBHOOK_URL=your_workflow_webhook_url
+   SLACK_SIGNING_SECRET=your_signing_secret
+   ```
+
+2. **Never Commit Secrets**: Ensure that files containing secrets (`.env`, `config/config.yaml`) are in your `.gitignore` file.
+
+3. **Webhook URL Security**: Slack webhook URLs contain authentication tokens. If these URLs are exposed:
+   - They can be used by anyone to post messages to your Slack workspace
+   - They should be treated as secrets and never committed to version control
+   - If a webhook URL is accidentally exposed, regenerate it immediately in the Slack app settings
+
+4. **Ngrok Security**: When using ngrok for development:
+   - The generated URLs provide public access to your local server
+   - These URLs should never be shared publicly or committed to version control
+   - For production, use a proper hosting environment with HTTPS and authentication
+
+5. **Signing Secret Verification**: Always verify incoming requests from Slack using the signing secret to prevent spoofing:
+   ```python
+   def verify_slack_request(request_data, timestamp, signature):
+       slack_signing_secret = os.getenv("SLACK_SIGNING_SECRET")
+       base_string = f"v0:{timestamp}:{request_data}"
+       my_signature = 'v0=' + hmac.new(
+           slack_signing_secret.encode(),
+           base_string.encode(),
+           hashlib.sha256
+       ).hexdigest()
+       return hmac.compare_digest(my_signature, signature)
+   ```
+
+6. **Regenerate Compromised Credentials**: If you suspect any of your Slack credentials have been compromised:
+   - Regenerate your webhook URLs in the Slack app settings
+   - Rotate your signing secret by regenerating your app
+   - Update your environment variables with the new credentials 

@@ -15,8 +15,8 @@ try:
 except ImportError:
     HAS_CHROMADB = False
 
-from together_llm import TogetherLLM
-from together_embeddings import TogetherEmbeddings
+from ..models.together_llm import TogetherLLM
+from ..models.together_embeddings import TogetherEmbeddings
 
 class TogetherRAG:
     """
