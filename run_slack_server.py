@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 import sqlite3
 import requests
 from pyngrok import ngrok
+import threading
 
 # Import the TogetherRAG class
 from src.core.together_rag import TogetherRAG
@@ -58,6 +59,135 @@ def verify_slack_request(request_data, timestamp, signature):
     
     # Compare signatures
     return hmac.compare_digest(my_signature, signature)
+
+# Process RAG query function
+def process_rag_query(query, response_url):
+    """Process a RAG query and send the result to the response_url."""
+    try:
+        print(f"Processing RAG query: {query}")
+        # Generate RAG response
+        response_data = rag.generate_response(query)
+        response_text = response_data.get('response', 'No response generated')
+        
+        # Extract sources
+        sources = []
+        for doc in response_data.get('retrieved_documents', []):
+            if 'metadata' in doc and 'source' in doc['metadata']:
+                sources.append(doc['metadata']['source'])
+        
+        # Format sources as a string with links if available
+        sources_text = ""
+        if sources:
+            for source in sources:
+                # Check if source contains a URL
+                if source.startswith(('http://', 'https://', 'www.')):
+                    sources_text += f"• <{source}|{source.split('/')[-1]}>\n"
+                else:
+                    sources_text += f"• {source}\n"
+        else:
+            sources_text = "No specific sources used"
+        
+        # Send the response back to Slack
+        if response_url:
+            payload = {
+                "response_type": "in_channel",
+                "blocks": [
+                    {
+                        "type": "header",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "GitLab RAG Query Results",
+                            "emoji": True
+                        }
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"*Query:* {query}"
+                        }
+                    },
+                    {
+                        "type": "divider"
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": response_text
+                        }
+                    },
+                    {
+                        "type": "divider"
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "*Sources Used:*\n" + sources_text
+                        }
+                    }
+                ]
+            }
+            print(f"Sending response to Slack at URL: {response_url}")
+            response = requests.post(response_url, json=payload)
+            print(f"Slack response status: {response.status_code}")
+            if response.status_code != 200:
+                print(f"Error response from Slack: {response.text}")
+    except Exception as e:
+        print(f"Error processing RAG query: {e}")
+        # Send error message back to Slack
+        if response_url:
+            payload = {
+                "response_type": "ephemeral",
+                "text": f"Error processing your query: {str(e)}"
+            }
+            requests.post(response_url, json=payload)
+
+@app.route('/slack/rag-query', methods=['POST'])
+def rag_query():
+    """
+    Handle direct RAG queries from Slack slash commands.
+    Example: /rag-query How do I set up GitLab CI/CD pipelines?
+    """
+    print("Received /slack/rag-query request")
+    # Verify the request is from Slack
+    request_body = request.get_data().decode('utf-8')
+    timestamp = request.headers.get('X-Slack-Request-Timestamp', '')
+    signature = request.headers.get('X-Slack-Signature', '')
+    
+    print(f"Request headers: {request.headers}")
+    print(f"Request body: {request_body}")
+    
+    if not verify_slack_request(request_body, timestamp, signature):
+        print("Invalid request signature")
+        return jsonify({"error": "Invalid request signature"}), 403
+    
+    # Get the query from the request
+    query = request.form.get('text', '')
+    user_id = request.form.get('user_id', '')
+    channel_id = request.form.get('channel_id', '')
+    response_url = request.form.get('response_url', '')
+    
+    print(f"Query: {query}")
+    print(f"Response URL: {response_url}")
+    
+    if not query:
+        return jsonify({
+            "response_type": "ephemeral",
+            "text": "Please provide a query. Example: `/rag-query How do I set up GitLab CI/CD pipelines?`"
+        })
+    
+    # Start processing in a separate thread
+    thread = threading.Thread(target=process_rag_query, args=(query, response_url))
+    thread.daemon = True
+    thread.start()
+    
+    # Send an immediate response to acknowledge receipt
+    return jsonify({
+        "response_type": "ephemeral",
+        "text": f"Processing your query: *{query}*\nThis may take a few seconds..."
+    })
 
 @app.route('/slack/events', methods=['POST'])
 def slack_events():
