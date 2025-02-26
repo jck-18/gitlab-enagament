@@ -36,7 +36,11 @@ reddit:
   client_id: "qtYFFTMpwiVsLebMyZJR7g"
   client_secret: "uAJgMhu95Y5PRlFwRx_z6T_FoRU9AA"
   user_agent: "GitLabEngagementBot/0.1"
-  days_back: 60
+  days_back: 10
+  
+slack:
+  webhook_url: "https://hooks.slack.com/services/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"  # Replace with your actual Slack webhook URL
+  workflow_webhook_url: "https://hooks.slack.com/triggers/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"  # Slack workflow webhook URL
   
 topic_modeling:
   num_topics: 10

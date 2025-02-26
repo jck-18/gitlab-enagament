@@ -1,5 +1,6 @@
 import yaml
 import praw
+import requests
 from sqlite3 import connect
 from datetime import datetime, timedelta
 
@@ -32,6 +33,98 @@ def save_post_to_db(post, content):
     connection.commit()
     connection.close()
 
+def send_to_slack(post, config):
+    """
+    Send a Reddit post to Slack using a webhook.
+    
+    Args:
+        post: The Reddit post object
+        config: The loaded configuration
+    """
+    # Get Slack webhook URL from config
+    slack_webhook_url = config.get('slack', {}).get('webhook_url')
+    
+    if not slack_webhook_url:
+        print("Slack webhook URL not configured. Skipping Slack notification.")
+        return
+    
+    # Build a message payload using Slack's Block Kit for rich formatting
+    payload = {
+        "text": f"New GitLab Reddit post: *{post.title}*",
+        "blocks": [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*{post.title}*\n<{post.url}|View on Reddit>\nPosted: {datetime.fromtimestamp(post.created_utc).strftime('%Y-%m-%d %H:%M:%S')}"
+                }
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"Content: {post.selftext[:500]}..." if len(post.selftext) > 500 else f"Content: {post.selftext}" if post.selftext else "No content"
+                }
+            },
+            {
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "Generate Draft Response"
+                        },
+                        "value": f"{post.id}",
+                        "action_id": "generate_draft"
+                    }
+                ]
+            }
+        ]
+    }
+    
+    try:
+        response = requests.post(slack_webhook_url, json=payload)
+        if response.status_code == 200:
+            print(f"Successfully sent post '{post.title}' to Slack")
+        else:
+            print(f"Failed to send Slack notification: {response.text}")
+    except Exception as e:
+        print(f"Error sending Slack notification: {e}")
+    
+    # Also trigger the Slack workflow if configured
+    trigger_slack_workflow(post, config)
+
+def trigger_slack_workflow(post, config):
+    """
+    Trigger a Slack workflow with the post data.
+    
+    Args:
+        post: The Reddit post object
+        config: The loaded configuration
+    """
+    # Get Slack workflow webhook URL from config
+    workflow_webhook_url = config.get('slack', {}).get('workflow_webhook_url')
+    
+    if not workflow_webhook_url:
+        print("Slack workflow webhook URL not configured. Skipping workflow trigger.")
+        return
+    
+    # Build a simple payload with the variables expected by the Slack workflow
+    payload = {
+        "url": post.url,
+        "title": post.title
+    }
+    
+    try:
+        response = requests.post(workflow_webhook_url, json=payload)
+        if response.status_code == 200:
+            print(f"Successfully triggered Slack workflow for post '{post.title}'")
+        else:
+            print(f"Failed to trigger Slack workflow: {response.text}")
+    except Exception as e:
+        print(f"Error triggering Slack workflow: {e}")
+
 def retrieve_reddit_posts():
     config = load_config()
     if config is None:
@@ -51,13 +144,13 @@ def retrieve_reddit_posts():
     
     # Add time filter parameters
     current_time = datetime.utcnow()
-    day_ago = current_time - timedelta(days=int(reddit_cfg.get('days_back')))
+    day_ago = current_time - timedelta(days=int(reddit_cfg.get('days_back', 1)))  # default to 1 day if not specified
 
     for subreddit in subreddits:
         sub = reddit.subreddit(subreddit)
         print(f"Fetching recent posts from r/{subreddit}...")
-        for post in sub.new(limit=100):
-            # Skip posts older than 24 hours
+        for post in sub.new(limit=20):
+            # Skip posts older than specified days
             post_time = datetime.fromtimestamp(post.created_utc)
             if post_time < day_ago:
                 continue
@@ -67,6 +160,9 @@ def retrieve_reddit_posts():
                 content = post.selftext if hasattr(post, 'selftext') else ""
                 save_post_to_db(post, content)
                 print(f"Saved post: {post.title}")
+                
+                # Trigger Slack webhook with relevant data
+                send_to_slack(post, config)
 
 if __name__ == '__main__':
     retrieve_reddit_posts()
